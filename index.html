@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sistema AD-01 — I.E. Divino Niño</title>
+  <title>Sistema Registro Orientación</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
@@ -29,26 +29,26 @@
   <div class="login-card">
     <div class="login-logo">
       <div class="logo-icon">✦</div>
-      <h1>I.E. Divino Niño</h1>
-      <p>Sistema de Orientación Escolar</p>
+      <h1>Sistema de Orientación Escolar</h1>
+      <p>I.E. Divino Niño</p>
     </div>
     <div class="login-form">
       <h2>Iniciar sesión</h2>
       <div class="field-group">
         <label>Correo electrónico</label>
-        <input type="email" id="loginEmail" placeholder="orientadora@divino.edu.co" />
+        <input type="email" id="loginEmail" placeholder="Ingrese su Usuario" />
       </div>
       <div class="field-group">
         <label>Contraseña</label>
         <div class="pass-wrap">
-          <input type="password" id="loginPassword" placeholder="••••••••••" />
+          <input type="password" id="loginPassword" placeholder="Ingrese su Contraseña" />
           <button type="button" class="toggle-pass" onclick="togglePass()">👁</button>
         </div>
       </div>
       <div id="loginError" class="login-error"></div>
       <button class="btn-login" onclick="iniciarSesion()">Entrar al sistema</button>
     </div>
-    <div class="login-footer">Caucasia, Antioquia · AD-01 v2.0</div>
+    <div class="login-footer">Programado Por Carlos Andres Jimenez M</div>
   </div>
 </div>
 
@@ -58,9 +58,9 @@
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-logo">✦</div>
+      <div class="sidebar-logo">🧭</div>
       <div>
-        <div class="sidebar-title">AD-01</div>
+        <div class="sidebar-title">S R O E</div>
         <div class="sidebar-sub">I.E. Divino Niño</div>
       </div>
       <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
@@ -73,7 +73,7 @@
       </button>
       <button class="nav-btn" onclick="mostrarSeccion('formulario')" data-section="formulario">
         <span class="nav-icon">📋</span>
-        <span class="nav-label">Formulario AD-01</span>
+        <span class="nav-label">Formulario</span>
       </button>
       <button class="nav-btn" onclick="mostrarSeccion('registros')" data-section="registros">
         <span class="nav-icon">🗂</span>
@@ -112,7 +112,7 @@
         </div>
         <div class="stat-card">
           <div class="stat-num" id="statRegistros">—</div>
-          <div class="stat-label">Registros AD-01 totales</div>
+          <div class="stat-label">Registros  totales</div>
         </div>
         <div class="stat-card">
           <div class="stat-num" id="statHoy">—</div>
@@ -131,7 +131,7 @@
     <!-- ======= SECCIÓN: FORMULARIO AD-01 ======= -->
     <section id="seccion-formulario" class="seccion">
       <div class="section-header">
-        <h2>📋 Formulario AD-01</h2>
+        <h2>📋 Formulario</h2>
         <p>Registrar acompañamiento psicosocial</p>
       </div>
 
@@ -252,7 +252,7 @@
       <div id="modalRegistro" class="modal hidden">
         <div class="modal-content">
           <div class="modal-header">
-            <h3>Detalle del Registro AD-01</h3>
+            <h3>Detalle del Registro</h3>
             <button onclick="cerrarModal('modalRegistro')">✕</button>
           </div>
           <div id="detalleRegistro" class="modal-body"></div>
