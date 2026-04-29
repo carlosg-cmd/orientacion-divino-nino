@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sistema AD-01 — I.E. Divino Niño</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilos.css" />
+
+  <!-- Librerías externas -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<!-- ===================== PANTALLA DE LOGIN ===================== -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-bg-shapes">
+    <div class="shape shape1"></div>
+    <div class="shape shape2"></div>
+    <div class="shape shape3"></div>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">✦</div>
+      <h1>I.E. Divino Niño</h1>
+      <p>Sistema de Orientación Escolar</p>
+    </div>
+    <div class="login-form">
+      <h2>Iniciar sesión</h2>
+      <div class="field-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="loginEmail" placeholder="orientadora@divino.edu.co" />
+      </div>
+      <div class="field-group">
+        <label>Contraseña</label>
+        <div class="pass-wrap">
+          <input type="password" id="loginPassword" placeholder="••••••••••" />
+          <button type="button" class="toggle-pass" onclick="togglePass()">👁</button>
+        </div>
+      </div>
+      <div id="loginError" class="login-error"></div>
+      <button class="btn-login" onclick="iniciarSesion()">Entrar al sistema</button>
+    </div>
+    <div class="login-footer">Caucasia, Antioquia · AD-01 v2.0</div>
+  </div>
+</div>
+
+<!-- ===================== APP PRINCIPAL ===================== -->
+<div id="appMain" class="app-main hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">✦</div>
+      <div>
+        <div class="sidebar-title">AD-01</div>
+        <div class="sidebar-sub">I.E. Divino Niño</div>
+      </div>
+      <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" onclick="mostrarSeccion('buscar')" data-section="buscar">
+        <span class="nav-icon">🔍</span>
+        <span class="nav-label">Buscar Estudiante</span>
+      </button>
+      <button class="nav-btn" onclick="mostrarSeccion('formulario')" data-section="formulario">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Formulario AD-01</span>
+      </button>
+      <button class="nav-btn" onclick="mostrarSeccion('registros')" data-section="registros">
+        <span class="nav-icon">🗂</span>
+        <span class="nav-label">Registros Guardados</span>
+      </button>
+      <button class="nav-btn" onclick="mostrarSeccion('base')" data-section="base">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Base de Datos</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="user-avatar">👤</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarUserName">Orientadora</div>
+        <div class="user-role" id="sidebarUserRole">Orientación</div>
+      </div>
+      <button class="btn-logout" onclick="cerrarSesion()" title="Cerrar sesión">⇥</button>
+    </div>
+  </aside>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="main-content" id="mainContent">
+
+    <!-- ======= SECCIÓN: BUSCAR ======= -->
+    <section id="seccion-buscar" class="seccion active">
+      <div class="section-header">
+        <h2>🔍 Buscar Estudiante</h2>
+        <p>Consulta información completa de un estudiante</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-num" id="statEstudiantes">—</div>
+          <div class="stat-label">Estudiantes registrados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statRegistros">—</div>
+          <div class="stat-label">Registros AD-01 totales</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statHoy">—</div>
+          <div class="stat-label">Atenciones hoy</div>
+        </div>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="inputBuscar" placeholder="Ingresa el número de documento del estudiante..." />
+        <button onclick="buscarEstudiante()">Buscar</button>
+      </div>
+
+      <div id="resultadoBusqueda" class="resultado-card hidden"></div>
+    </section>
+
+    <!-- ======= SECCIÓN: FORMULARIO AD-01 ======= -->
+    <section id="seccion-formulario" class="seccion">
+      <div class="section-header">
+        <h2>📋 Formulario AD-01</h2>
+        <p>Registrar acompañamiento psicosocial</p>
+      </div>
+
+      <div class="form-card">
+        <!-- Datos del estudiante -->
+        <div class="form-section-title">Datos del Estudiante</div>
+        <div class="form-grid">
+          <div class="field-group">
+            <label>Documento</label>
+            <div class="input-btn-wrap">
+              <input type="text" id="fDoc" placeholder="Número de documento" />
+              <button onclick="autocompletar()" class="btn-auto">Auto</button>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>Nombre completo</label>
+            <input type="text" id="fNombre" placeholder="Nombre del estudiante" />
+          </div>
+          <div class="field-group">
+            <label>Grupo / Grado</label>
+            <input type="text" id="fGrupo" placeholder="Ej: 9°A" />
+          </div>
+          <div class="field-group">
+            <label>Celular</label>
+            <input type="text" id="fCelular" placeholder="Número de contacto" />
+          </div>
+        </div>
+
+        <!-- Datos de la atención -->
+        <div class="form-section-title">Datos de la Atención</div>
+        <div class="form-grid">
+          <div class="field-group">
+            <label>Fecha de atención</label>
+            <input type="date" id="fFecha" />
+          </div>
+          <div class="field-group">
+            <label>Fecha de remisión</label>
+            <input type="date" id="fFechaRem" />
+          </div>
+          <div class="field-group">
+            <label>Tipo de remisión</label>
+            <select id="fRemision">
+              <option value="">Seleccionar...</option>
+              <option value="docente">Docente</option>
+              <option value="acudiente">Acudiente</option>
+              <option value="autonomo">Autónomo</option>
+              <option value="coordinacion">Coordinación</option>
+              <option value="rector">Rector</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>¿Quién remite?</label>
+            <input type="text" id="fQuienRemite" placeholder="Nombre de quien remite" />
+          </div>
+        </div>
+
+        <div class="field-group full-width">
+          <label>Motivo de atención</label>
+          <textarea id="fMotivo" rows="3" placeholder="Describe el motivo de la atención psicosocial..."></textarea>
+        </div>
+
+        <div class="form-section-title">Tipo de Acompañamiento</div>
+        <div class="checkbox-grid">
+          <label class="check-item"><input type="checkbox" name="acomp" value="individual"/> Individual</label>
+          <label class="check-item"><input type="checkbox" name="acomp" value="grupal"/> Grupal</label>
+          <label class="check-item"><input type="checkbox" name="acomp" value="familiar"/> Familiar</label>
+          <label class="check-item"><input type="checkbox" name="acomp" value="remision_externa"/> Remisión externa</label>
+          <label class="check-item"><input type="checkbox" name="acomp" value="seguimiento"/> Seguimiento</label>
+          <label class="check-item"><input type="checkbox" name="acomp" value="talleres"/> Talleres</label>
+        </div>
+
+        <div class="form-section-title">Ruta de Atención</div>
+        <div class="checkbox-grid">
+          <label class="check-item"><input type="checkbox" name="ruta" value="orientacion"/> Orientación</label>
+          <label class="check-item"><input type="checkbox" name="ruta" value="coordinacion"/> Coordinación</label>
+          <label class="check-item"><input type="checkbox" name="ruta" value="icbf"/> ICBF</label>
+          <label class="check-item"><input type="checkbox" name="ruta" value="salud"/> Salud</label>
+          <label class="check-item"><input type="checkbox" name="ruta" value="policia"/> Policía</label>
+          <label class="check-item"><input type="checkbox" name="ruta" value="comisaria"/> Comisaría</label>
+        </div>
+
+        <div class="field-group full-width">
+          <label>Observaciones</label>
+          <textarea id="fObservaciones" rows="4" placeholder="Observaciones adicionales, compromisos, acuerdos..."></textarea>
+        </div>
+
+        <div class="field-group">
+          <label>¿Se realizó remisión formal?</label>
+          <select id="fRemFormal">
+            <option value="no">No</option>
+            <option value="si">Sí</option>
+          </select>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-secondary" onclick="limpiarFormulario()">Limpiar</button>
+          <button class="btn-primary" onclick="guardarRegistro()">💾 Guardar Registro</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= SECCIÓN: REGISTROS ======= -->
+    <section id="seccion-registros" class="seccion">
+      <div class="section-header">
+        <h2>🗂 Registros Guardados</h2>
+        <p>Historial de atenciones psicosociales</p>
+      </div>
+
+      <div class="toolbar">
+        <input type="text" id="filtroRegistros" placeholder="Buscar en registros..." oninput="filtrarRegistros()" />
+        <button class="btn-export" onclick="exportarRegistrosExcel()">📊 Excel</button>
+        <button class="btn-export" onclick="exportarRegistrosPDF()">📄 PDF</button>
+      </div>
+
+      <div id="tablaRegistros" class="tabla-wrapper"></div>
+
+      <!-- Modal detalle registro -->
+      <div id="modalRegistro" class="modal hidden">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Detalle del Registro AD-01</h3>
+            <button onclick="cerrarModal('modalRegistro')">✕</button>
+          </div>
+          <div id="detalleRegistro" class="modal-body"></div>
+          <div class="modal-footer">
+            <button class="btn-secondary" onclick="cerrarModal('modalRegistro')">Cerrar</button>
+            <button class="btn-primary" onclick="abrirSeguimiento()">➕ Agregar Seguimiento</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal seguimiento -->
+      <div id="modalSeguimiento" class="modal hidden">
+        <div class="modal-content modal-sm">
+          <div class="modal-header">
+            <h3>Agregar Seguimiento</h3>
+            <button onclick="cerrarModal('modalSeguimiento')">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="field-group">
+              <label>Fecha</label>
+              <input type="date" id="segFecha" />
+            </div>
+            <div class="field-group">
+              <label>Observaciones del seguimiento</label>
+              <textarea id="segObs" rows="4" placeholder="Describe el seguimiento realizado..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary" onclick="cerrarModal('modalSeguimiento')">Cancelar</button>
+            <button class="btn-primary" onclick="guardarSeguimiento()">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= SECCIÓN: BASE DE DATOS ======= -->
+    <section id="seccion-base" class="seccion">
+      <div class="section-header">
+        <h2>👥 Base de Datos de Estudiantes</h2>
+        <p>Gestión del listado estudiantil</p>
+      </div>
+
+      <div class="toolbar">
+        <input type="text" id="filtroBase" placeholder="Buscar estudiante..." oninput="filtrarBase()" />
+        <label class="btn-export" style="cursor:pointer;">
+          📂 Cargar Excel
+          <input type="file" id="fileExcel" accept=".xlsx,.csv" onchange="cargarExcel(event)" style="display:none" />
+        </label>
+        <button class="btn-export" onclick="abrirModalNuevoEstudiante()">➕ Agregar</button>
+        <button class="btn-export" onclick="exportarBaseExcel()">📊 Exportar</button>
+      </div>
+
+      <div id="tablaBase" class="tabla-wrapper"></div>
+
+      <!-- Modal nuevo/editar estudiante -->
+      <div id="modalEstudiante" class="modal hidden">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 id="modalEstTitulo">Nuevo Estudiante</h3>
+            <button onclick="cerrarModal('modalEstudiante')">✕</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="estId" />
+            <div class="form-grid">
+              <div class="field-group">
+                <label>Nombre completo *</label>
+                <input type="text" id="estNombre" placeholder="Nombre del estudiante" />
+              </div>
+              <div class="field-group">
+                <label>Documento *</label>
+                <input type="text" id="estDocumento" placeholder="Número de documento" />
+              </div>
+              <div class="field-group">
+                <label>Grupo / Grado</label>
+                <input type="text" id="estGrupo" placeholder="Ej: 10°B" />
+              </div>
+              <div class="field-group">
+                <label>Celular estudiante</label>
+                <input type="text" id="estCelular" placeholder="Celular" />
+              </div>
+              <div class="field-group">
+                <label>IPS</label>
+                <input type="text" id="estIps" placeholder="IPS asignada" />
+              </div>
+              <div class="field-group">
+                <label>Discapacidad</label>
+                <input type="text" id="estDiscapacidad" placeholder="Tipo de discapacidad o N/A" />
+              </div>
+              <div class="field-group">
+                <label>Acudiente</label>
+                <input type="text" id="estAcudiente" placeholder="Nombre del acudiente" />
+              </div>
+              <div class="field-group">
+                <label>Parentesco</label>
+                <input type="text" id="estParentesco" placeholder="Ej: Madre, Padre, Abuela" />
+              </div>
+              <div class="field-group">
+                <label>Celular acudiente</label>
+                <input type="text" id="estCelAcudiente" placeholder="Celular del acudiente" />
+              </div>
+              <div class="field-group">
+                <label>Dirección</label>
+                <input type="text" id="estDireccion" placeholder="Dirección de residencia" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary" onclick="cerrarModal('modalEstudiante')">Cancelar</button>
+            <button class="btn-primary" onclick="guardarEstudiante()">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- TOAST NOTIFICATION -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- LOADER -->
+<div id="loader" class="loader-overlay hidden">
+  <div class="loader-spinner"></div>
+  <div class="loader-text">Cargando...</div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
