@@ -1,6 +1,6 @@
 // ============================================================
 //  SISTEMA AD-01 — I.E. Divino Niño
-//  app.js v2.0 — Con Supabase, Login y Base de Datos en la nube
+//  app.js v2.1 — Con búsqueda en tiempo real y filtro por grado
 // ============================================================
 
 // ============================================================
@@ -24,7 +24,6 @@ let registrosCache = [];
 //  INICIALIZACIÓN
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
-  // Verificar sesión guardada
   const sesion = localStorage.getItem('ad01_sesion');
   if (sesion) {
     try {
@@ -35,14 +34,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Fecha de hoy por defecto en formulario
   const hoy = new Date().toISOString().split('T')[0];
   const fFecha = document.getElementById('fFecha');
   const fFechaRem = document.getElementById('fFechaRem');
   if (fFecha) fFecha.value = hoy;
   if (fFechaRem) fFechaRem.value = hoy;
 
-  // Enter en login
   document.getElementById('loginPassword')?.addEventListener('keydown', e => {
     if (e.key === 'Enter') iniciarSesion();
   });
@@ -109,7 +106,7 @@ function mostrarApp() {
   document.getElementById('sidebarUserRole').textContent = usuarioActual.rol || 'Orientación';
   cargarStats();
   cargarRegistros();
-  cargarBase();
+  cargarBase(); // poblarFiltroGrados se llama dentro de cargarBase
 }
 
 function togglePass() {
@@ -160,24 +157,139 @@ async function cargarStats() {
 }
 
 // ============================================================
-//  BUSCAR ESTUDIANTE
+//  BUSCAR ESTUDIANTE — tiempo real + filtro por grado
 // ============================================================
-async function buscarEstudiante() {
+function buscarEstudiante() {
+  const texto = (document.getElementById('inputBuscar').value || '').trim().toLowerCase();
+  const gradoFiltro = (document.getElementById('filtroBuscarGrado')?.value || '').toLowerCase();
+  const resultadoEl = document.getElementById('resultadoBusqueda');
 
-  const texto = document.getElementById("inputBuscar").value.trim();
+  if (!texto && !gradoFiltro) {
+    resultadoEl.classList.add('hidden');
+    resultadoEl.innerHTML = '';
+    return;
+  }
 
-  if (!texto) return;
+  let resultados = estudiantesCache;
+
+  if (texto) {
+    resultados = resultados.filter(e =>
+      (e.documento || '').toLowerCase().includes(texto) ||
+      (e.nombre || '').toLowerCase().includes(texto)
+    );
+  }
+
+  if (gradoFiltro) {
+    resultados = resultados.filter(e =>
+      (e.grupo || '').toLowerCase() === gradoFiltro
+    );
+  }
+
+  mostrarResultados(resultados);
+}
+
+function mostrarResultados(datos) {
+  const el = document.getElementById('resultadoBusqueda');
+
+  if (!datos || datos.length === 0) {
+    el.classList.remove('hidden');
+    el.innerHTML = '<p style="padding:20px 18px;color:var(--texto-suave);">No se encontraron estudiantes.</p>';
+    return;
+  }
+
+  el.classList.remove('hidden');
+  el.innerHTML = datos.map(est => `
+    <div class="resultado-item" style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:14px 18px;
+      border-bottom:1px solid var(--borde);
+      gap:12px;
+      flex-wrap:wrap;
+    ">
+      <div>
+        <div style="font-weight:700;font-size:15px;">${est.nombre}</div>
+        <div style="font-size:13px;color:var(--texto-suave);margin-top:4px;">
+          📄 ${est.documento}
+          ${est.grupo ? '&nbsp;·&nbsp; 🏫 ' + est.grupo : ''}
+          ${est.celular ? '&nbsp;·&nbsp; 📱 ' + est.celular : ''}
+          ${est.acudiente ? '&nbsp;·&nbsp; 👤 ' + est.acudiente : ''}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button class="btn-tabla" onclick="verHistorialEstudiante('${est.documento}')" title="Ver historial">📋 Historial</button>
+        <button class="btn-tabla" style="background:var(--azul);color:white;" onclick='llenarFormulario(${JSON.stringify(est).replace(/'/g, "&#39;")})' title="Nuevo registro">➕ Registro</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function verHistorialEstudiante(documento) {
+  const histId = 'historial-' + documento;
+  const existente = document.getElementById(histId);
+  if (existente) { existente.remove(); return; }
 
   mostrarLoader(true);
-
   const { data, error } = await db
-    .from("estudiantes")
-    .select("*")
-    .or(`documento.eq.${texto},nombre.ilike.%${texto}%`);
-
+    .from('registros')
+    .select('*')
+    .eq('documento', documento)
+    .order('fecha', { ascending: false });
   mostrarLoader(false);
 
-  mostrarResultados(data);
+  if (error) { mostrarToast('Error al cargar historial', 'error'); return; }
+
+  const est = estudiantesCache.find(e => e.documento === documento);
+  const el = document.getElementById('resultadoBusqueda');
+
+  const div = document.createElement('div');
+  div.id = histId;
+  div.style.cssText = 'margin:6px 0 4px 0;border:1px solid var(--borde);border-radius:12px;overflow:hidden;background:#f8faff;';
+
+  if (!data || data.length === 0) {
+    div.innerHTML = `
+      <div style="background:var(--azul);color:white;padding:10px 16px;font-weight:700;display:flex;justify-content:space-between;">
+        <span>📋 Historial de ${est?.nombre || documento}</span>
+        <span style="cursor:pointer;" onclick="document.getElementById('${histId}').remove()">✕</span>
+      </div>
+      <p style="padding:16px;color:var(--texto-suave);font-size:13px;">Este estudiante no tiene registros de atención aún.</p>
+    `;
+  } else {
+    div.innerHTML = `
+      <div style="background:var(--azul);color:white;padding:10px 16px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+        <span>📋 Historial de ${est?.nombre || documento} — ${data.length} registro(s)</span>
+        <span style="cursor:pointer;font-size:18px;" onclick="document.getElementById('${histId}').remove()">✕</span>
+      </div>
+      ${data.map(r => `
+        <div style="padding:12px 16px;border-bottom:1px solid var(--borde);font-size:13px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <strong>📅 ${r.fecha || '—'}</strong>
+            <span class="badge badge-azul">${r.remision || '—'}</span>
+          </div>
+          <div style="color:#333;margin-bottom:3px;">${r.motivo || 'Sin motivo registrado'}</div>
+          ${r.observaciones ? '<div style="color:var(--texto-suave);font-size:12px;">📝 ' + r.observaciones + '</div>' : ''}
+          <div style="color:var(--texto-suave);font-size:11px;margin-top:4px;">Registrado por: ${r.usuario_nombre || '—'}</div>
+        </div>
+      `).join('')}
+    `;
+  }
+
+  el.appendChild(div);
+}
+
+function poblarFiltroGrados() {
+  const select = document.getElementById('filtroBuscarGrado');
+  if (!select) return;
+
+  const grados = [...new Set(
+    estudiantesCache
+      .map(e => (e.grupo || '').trim())
+      .filter(g => g !== '')
+  )].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+
+  select.innerHTML = '<option value="">Todos los grados</option>' +
+    grados.map(g => `<option value="${g}">${g}</option>`).join('');
 }
 
 function llenarFormulario(data) {
@@ -240,7 +352,6 @@ async function guardarRegistro() {
     usuario_nombre: usuarioActual.nombre
   };
 
-  // Buscar estudiante_id
   const { data: est } = await db.from('estudiantes').select('id').eq('documento', doc).single();
   if (est) registro.estudiante_id = est.id;
 
@@ -355,18 +466,18 @@ async function verRegistro(id) {
     <div class="detalle-obs">${reg.motivo || '—'}</div>
     <p style="font-weight:700;margin:14px 0 8px;">Observaciones:</p>
     <div class="detalle-obs">${reg.observaciones || '—'}</div>
-
     <div class="seguimientos-list">
       <p style="font-weight:800;color:var(--azul);margin-bottom:10px;margin-top:18px;">
         Seguimientos (${segs.length})
       </p>
-      ${segs.length === 0 ? '<p style="color:var(--texto-suave);font-size:13px;">Sin seguimientos aún.</p>' :
-        segs.map(s => `
-          <div class="seg-item">
-            <div class="seg-fecha">📅 ${s.fecha || '—'}</div>
-            ${s.obs}
-          </div>
-        `).join('')
+      ${segs.length === 0
+        ? '<p style="color:var(--texto-suave);font-size:13px;">Sin seguimientos aún.</p>'
+        : segs.map(s => `
+            <div class="seg-item">
+              <div class="seg-fecha">📅 ${s.fecha || '—'}</div>
+              ${s.obs}
+            </div>
+          `).join('')
       }
     </div>
   `;
@@ -400,12 +511,12 @@ async function guardarSeguimiento() {
 
   mostrarLoader(true);
   const { error } = await db.from('seguimientos').insert({
-  registro_id: registroActualId,
-  obs,
-  fecha,
-  usuario_id: usuarioActual.id,
-  usuario_nombre: usuarioActual.nombre
-});
+    registro_id: registroActualId,
+    obs,
+    fecha,
+    usuario_id: usuarioActual.id,
+    usuario_nombre: usuarioActual.nombre
+  });
   mostrarLoader(false);
 
   if (error) { mostrarToast('Error al guardar seguimiento', 'error'); return; }
@@ -422,6 +533,7 @@ async function cargarBase() {
   if (error) { console.error(error); return; }
   estudiantesCache = data || [];
   renderTablaBase(estudiantesCache);
+  poblarFiltroGrados();
 }
 
 function renderTablaBase(datos) {
@@ -558,8 +670,6 @@ async function eliminarEstudiante(id) {
 // ============================================================
 //  CARGA MASIVA DE EXCEL
 // ============================================================
-
-// Normaliza: minúsculas, sin tildes, sin espacios ni símbolos
 function normalizar(str) {
   return String(str)
     .toLowerCase()
@@ -579,18 +689,15 @@ function cargarExcel(event) {
       const workbook = XLSX.read(data, { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-      // Leer con celdas combinadas expandidas y sin convertir tipos
       const rows = XLSX.utils.sheet_to_json(sheet, {
         header: 1,
         defval: '',
-        raw: false   // todo como texto, evita que números se lean como índices
+        raw: false
       });
 
-      // Imprimir en consola para debug
       console.log('=== PRIMERAS 10 FILAS DEL EXCEL ===');
       rows.slice(0, 10).forEach((r, i) => console.log(`Fila ${i}:`, r));
 
-      // Detectar fila de encabezados
       const filaEnc = encontrarFilaEncabezados(rows);
       console.log('Fila de encabezados detectada:', filaEnc, rows[filaEnc]);
 
@@ -624,7 +731,6 @@ function cargarExcel(event) {
         return;
       }
 
-      // Confirmar antes de importar si ya hay datos
       const { count } = await db.from('estudiantes').select('*', { count: 'exact', head: true });
       if (count > 0) {
         const ok = confirm(
@@ -633,12 +739,9 @@ function cargarExcel(event) {
           `(Se borrarán primero los datos actuales)`
         );
         if (!ok) { mostrarLoader(false); return; }
-
-        // Borrar todos los estudiantes actuales antes de insertar los nuevos
         await db.from('estudiantes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       }
 
-      // Insertar por lotes
       const lote = 100;
       let insertados = 0;
       let errores = 0;
@@ -671,7 +774,6 @@ function cargarExcel(event) {
 }
 
 function encontrarFilaEncabezados(rows) {
-  // Busca la fila que tenga al menos 3 de estas palabras clave normalizadas
   const keywords = ['estudiante', 'identificacion', 'grupo', 'celular', 'ips', 'nombre', 'documento', 'acudiente', 'parentesco'];
   for (let i = 0; i < Math.min(rows.length, 20); i++) {
     const textos = rows[i].map(c => normalizar(String(c)));
@@ -682,17 +784,13 @@ function encontrarFilaEncabezados(rows) {
 }
 
 function mapearFila(headers, row) {
-  // Busca valor en la fila por nombre de columna (coincidencia exacta normalizada primero,
-  // luego parcial solo si el header tiene más de 3 chars para evitar falsos positivos)
   const get = (...aliases) => {
     for (const alias of aliases) {
       const aN = normalizar(alias);
       const idx = headers.findIndex(h => {
         const hN = normalizar(h);
         if (hN.length === 0) return false;
-        // Coincidencia exacta normalizada
         if (hN === aN) return true;
-        // Coincidencia parcial solo si ambos tienen más de 3 chars
         if (hN.length > 3 && aN.length > 3 && hN.includes(aN)) return true;
         return false;
       });
@@ -704,7 +802,6 @@ function mapearFila(headers, row) {
     return '';
   };
 
-  // Acudiente: columnas separadas Nombres(Acudiente) + Apellidos(Acudiente)
   const nomAcud  = get('Nombres(Acudiente)', 'nombresacudiente', 'nombreacudiente');
   const apelAcud = get('Apellidos(Acudiente)', 'apellidosacudiente', 'apellidoacudiente');
   const acudiente = (nomAcud && apelAcud)
@@ -736,7 +833,6 @@ async function exportarRegistrosExcel() {
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Registros AD-01');
 
-    // Ancho de columnas
     ws.columns = [
       { key: 'fecha', width: 14 },
       { key: 'nombre', width: 30 },
@@ -751,7 +847,6 @@ async function exportarRegistrosExcel() {
       { key: 'usuario_nombre', width: 22 }
     ];
 
-    // Encabezado institucional
     ws.mergeCells('A1:K1');
     ws.getCell('A1').value = 'I.E. DIVINO NIÑO — CAUCASIA, ANTIOQUIA';
     ws.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
@@ -773,10 +868,8 @@ async function exportarRegistrosExcel() {
     ws.getCell('A3').alignment = { horizontal: 'center' };
     ws.getRow(3).height = 18;
 
-    // Fila vacía
     ws.addRow([]);
 
-    // Encabezados de tabla
     const encRow = ws.addRow([
       'Fecha','Estudiante','Documento','Motivo','Tipo Remisión',
       'Quién Remite','Acompañamiento','Ruta','Observaciones','Rem. Formal','Registrado Por'
@@ -789,7 +882,6 @@ async function exportarRegistrosExcel() {
     });
     encRow.height = 22;
 
-    // Filas de datos
     registrosCache.forEach((r, i) => {
       const row = ws.addRow([
         r.fecha, r.nombre, r.documento, r.motivo,
