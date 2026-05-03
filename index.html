@@ -99,7 +99,6 @@
   <main class="main-content" id="mainContent">
 
     <!-- ======= SECCIÓN: BUSCAR ======= -->
-    <!-- ======= SECCIÓN: BUSCAR ======= -->
 <section id="seccion-buscar" class="seccion active">
   <div class="section-header">
     <h2>🔍 Buscar Estudiante</h2>
@@ -122,22 +121,23 @@
   </div>
 
   <!-- FILTROS -->
-  <div class="search-box">
-    <input type="text" id="inputBuscar"
-      placeholder="Buscar por documento o nombre..."
-      oninput="buscarEstudiante()" />
-    <select id="filtroBuscarGrado" onchange="buscarEstudiante()" style="
-      padding: 10px 14px;
-      border: 2px solid var(--borde);
-      border-radius: 10px;
-      font-size: 14px;
-      background: white;
-      cursor: pointer;
-      min-width: 160px;
-    ">
-      <option value="">Todos los grados</option>
-    </select>
-  </div>
+  <div class="search-box" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+  <input type="text" id="inputBuscar"
+    placeholder="Buscar por documento o nombre..."
+    oninput="buscarEstudiante()"
+    style="flex:1; min-width:220px;" />
+  <select id="filtroBuscarGrado" onchange="buscarEstudiante()" style="
+    padding:10px 14px;
+    border:2px solid var(--borde);
+    border-radius:10px;
+    font-size:14px;
+    background:white;
+    cursor:pointer;
+    min-width:180px;
+    max-width:220px;">
+    <option value="">Todos los grados</option>
+  </select>
+</div>
 
   <div id="resultadoBusqueda" class="resultado-card hidden"></div>
 </section>
