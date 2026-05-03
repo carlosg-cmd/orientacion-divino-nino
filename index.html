@@ -99,31 +99,48 @@
   <main class="main-content" id="mainContent">
 
     <!-- ======= SECCIÓN: BUSCAR ======= -->
-    <section id="seccion-buscar" class="seccion active">
-      <div class="section-header">
-        <h2>🔍 Buscar Estudiante</h2>
-        <p>Consulta información completa de un estudiante</p>
-      </div>
+    <!-- ======= SECCIÓN: BUSCAR ======= -->
+<section id="seccion-buscar" class="seccion active">
+  <div class="section-header">
+    <h2>🔍 Buscar Estudiante</h2>
+    <p>Consulta información completa de un estudiante</p>
+  </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-num" id="statEstudiantes">—</div>
-          <div class="stat-label">Estudiantes registrados</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="statRegistros">—</div>
-          <div class="stat-label">Registros  totales</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num" id="statHoy">—</div>
-          <div class="stat-label">Atenciones hoy</div>
-        </div>
-      </div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-num" id="statEstudiantes">—</div>
+      <div class="stat-label">Estudiantes registrados</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statRegistros">—</div>
+      <div class="stat-label">Registros totales</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statHoy">—</div>
+      <div class="stat-label">Atenciones hoy</div>
+    </div>
+  </div>
 
-      <div class="search-box">
-        <input type="text" id="inputBuscar" placeholder="Ingresa el número de documento del estudiante..." />
-        <button onclick="buscarEstudiante()">Buscar</button>
-      </div>
+  <!-- FILTROS -->
+  <div class="search-box">
+    <input type="text" id="inputBuscar"
+      placeholder="Buscar por documento o nombre..."
+      oninput="buscarEstudiante()" />
+    <select id="filtroBuscarGrado" onchange="buscarEstudiante()" style="
+      padding: 10px 14px;
+      border: 2px solid var(--borde);
+      border-radius: 10px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+      min-width: 160px;
+    ">
+      <option value="">Todos los grados</option>
+    </select>
+  </div>
+
+  <div id="resultadoBusqueda" class="resultado-card hidden"></div>
+</section>
 
       <div id="resultadoBusqueda" class="resultado-card hidden"></div>
     </section>
