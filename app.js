@@ -112,7 +112,10 @@ function cerrarRecuperacion() {
 async function enviarRecuperacion() {
   const email = document.getElementById('recoveryEmail').value.trim().toLowerCase();
   const msgEl = document.getElementById('recoveryMsg');
+  const btnEnviar = document.querySelector('#modalRecuperacion button:last-child');
+
   msgEl.style.color = '#c0392b';
+  msgEl.textContent = '';
 
   if (!email) {
     msgEl.textContent = 'Ingresa tu correo Gmail.';
@@ -123,32 +126,72 @@ async function enviarRecuperacion() {
     return;
   }
 
+  btnEnviar.textContent = 'Buscando...';
+  btnEnviar.disabled = true;
+
   // Verificar que el correo existe en la tabla de usuarios
   const { data, error } = await db
     .from('usuarios')
-    .select('id')
+    .select('id, nombre')
     .eq('email', email)
     .single();
 
   if (error || !data) {
     msgEl.textContent = 'Este correo no está registrado en el sistema.';
+    btnEnviar.textContent = 'Enviar';
+    btnEnviar.disabled = false;
     return;
   }
 
-  // Enviar correo de recuperación vía Supabase Auth
-  const { error: resetError } = await db.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + window.location.pathname
-  });
+  // Generar contraseña temporal de 8 caracteres
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let tempPass = '';
+  for (let i = 0; i < 8; i++) {
+    tempPass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
 
-  if (resetError) {
-    // Si Supabase Auth no tiene ese usuario, mostrar instrucción manual
-    msgEl.style.color = '#e67e22';
-    msgEl.textContent = 'Contacta al administrador para restablecer tu contraseña.';
+  // Actualizar contraseña en la tabla usuarios
+  const { error: updateError } = await db
+    .from('usuarios')
+    .update({ password: tempPass })
+    .eq('id', data.id);
+
+  btnEnviar.textContent = 'Enviar';
+  btnEnviar.disabled = false;
+
+  if (updateError) {
+    msgEl.textContent = 'Error al generar la contraseña. Intenta de nuevo.';
     return;
   }
 
+  // Mostrar contraseña temporal con opción de copiar
   msgEl.style.color = '#27ae60';
-  msgEl.textContent = '✓ Enlace enviado. Revisa tu Gmail (incluida la carpeta de spam).';
+  msgEl.innerHTML = `
+    ✓ Contraseña temporal generada para <strong>${data.nombre}</strong>:<br><br>
+    <div style="
+      background:#f0fdf4;border:2px solid #27ae60;border-radius:8px;
+      padding:10px 14px;display:flex;align-items:center;justify-content:space-between;
+      gap:10px;margin-top:4px;">
+      <span id="tempPassText" style="font-size:20px;font-weight:800;letter-spacing:3px;color:#1a3a6b;">${tempPass}</span>
+      <button onclick="copiarTempPass()" style="
+        background:#27ae60;color:white;border:none;border-radius:6px;
+        padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;">
+        📋 Copiar
+      </button>
+    </div>
+    <p style="font-size:11px;color:#666;margin:8px 0 0;">
+      Úsala para ingresar y cámbiala después. Esta contraseña reemplaza la anterior.
+    </p>
+  `;
+}
+
+function copiarTempPass() {
+  const pass = document.getElementById('tempPassText')?.textContent || '';
+  navigator.clipboard.writeText(pass).then(() => {
+    mostrarToast('Contraseña copiada ✓', 'success');
+  }).catch(() => {
+    mostrarToast('Copia manual: ' + pass, '');
+  });
 }
 
 function cerrarSesion() {
