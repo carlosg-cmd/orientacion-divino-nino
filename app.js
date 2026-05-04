@@ -173,10 +173,11 @@ function buscarEstudiante() {
   let resultados = estudiantesCache;
 
   if (texto) {
-    resultados = resultados.filter(e =>
-      (e.documento || '').toLowerCase().includes(texto) ||
-      (e.nombre || '').toLowerCase().includes(texto)
-    );
+    resultados = resultados.filter(e => {
+      const doc = (e.documento || '').toLowerCase().trim();
+      const nombre = (e.nombre || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      return doc.includes(texto) || nombre.includes(texto);
+    });
   }
 
   if (gradoFiltro) {
