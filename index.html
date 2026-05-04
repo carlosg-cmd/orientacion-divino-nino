@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sistema Registro Orientación</title>
+  <title> Sistema de Información para Orientadores Escolares</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
@@ -38,19 +38,19 @@
         <label>Correo Gmail</label>
         <div style="position:relative;">
           <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:18px;">📧</span>
-          <input type="email" id="loginEmail" placeholder="tucorreo@gmail.com"
+          <input type="email" id="loginEmail" placeholder="Ingresa tu Usuario"
             style="padding-left:38px;" />
         </div>
       </div>
       <div class="field-group">
         <label>Contraseña</label>
         <div class="pass-wrap">
-          <input type="password" id="loginPassword" placeholder="Ingrese su Contraseña" />
+          <input type="password" id="loginPassword" placeholder="Ingresa su Contraseña" />
           <button type="button" class="toggle-pass" onclick="togglePass()">👁</button>
         </div>
       </div>
       <div id="loginError" class="login-error"></div>
-      <button class="btn-login" onclick="iniciarSesion()">Entrar al sistema</button>
+      <button class="btn-login" onclick="iniciarSesion()">Entrar</button>
       <div style="text-align:center;margin-top:12px;">
         <button type="button" onclick="abrirRecuperacion()" style="
           background:none;border:none;color:#2855a0;font-size:13px;
