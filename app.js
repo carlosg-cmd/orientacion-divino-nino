@@ -529,9 +529,30 @@ async function guardarSeguimiento() {
 //  BASE DE DATOS DE ESTUDIANTES
 // ============================================================
 async function cargarBase() {
-  const { data, error } = await db.from('estudiantes').select('*').order('nombre');
-  if (error) { console.error(error); return; }
-  estudiantesCache = data || [];
+  const LIMITE = 1000;
+  let todos = [];
+  let desde = 0;
+  let hayMas = true;
+
+  while (hayMas) {
+    const { data, error } = await db
+      .from('estudiantes')
+      .select('*')
+      .order('nombre')
+      .range(desde, desde + LIMITE - 1);
+
+    if (error) { console.error(error); break; }
+    if (!data || data.length === 0) { hayMas = false; break; }
+
+    todos = todos.concat(data);
+    if (data.length < LIMITE) {
+      hayMas = false;
+    } else {
+      desde += LIMITE;
+    }
+  }
+
+  estudiantesCache = todos;
   renderTablaBase(estudiantesCache);
   poblarFiltroGrados();
 }
