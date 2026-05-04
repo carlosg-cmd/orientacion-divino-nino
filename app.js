@@ -358,8 +358,8 @@ function mostrarBienvenida(nombre) {
   toast.style.opacity = '0';
   toast.style.transition = 'opacity 0.5s ease';
   setTimeout(() => { toast.style.opacity = '1'; }, 50);
-  setTimeout(() => { toast.style.opacity = '0'; }, 2000);
-  setTimeout(() => { toast.style.display = 'none'; }, 2500);
+  setTimeout(() => { toast.style.opacity = '0'; }, 6000);
+  setTimeout(() => { toast.style.display = 'none'; }, 6500);
 }
 
 function togglePass() {
@@ -469,7 +469,11 @@ function buscarEstudiante() {
     resultados = resultados.filter(e => {
       const doc = (e.documento || '').toLowerCase().trim();
       const nombre = (e.nombre || '').toLowerCase().replace(/\s+/g, ' ').trim();
-      return doc.includes(texto) || nombre.includes(texto);
+      // Buscar por documento exacto
+      if (doc.includes(texto)) return true;
+      // Buscar por nombre: todas las palabras escritas deben estar en el nombre (sin importar orden)
+      const palabras = texto.split(/\s+/).filter(Boolean);
+      return palabras.every(p => nombre.includes(p));
     });
   }
 
