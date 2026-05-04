@@ -358,8 +358,8 @@ function mostrarBienvenida(nombre) {
   toast.style.opacity = '0';
   toast.style.transition = 'opacity 0.5s ease';
   setTimeout(() => { toast.style.opacity = '1'; }, 50);
-  setTimeout(() => { toast.style.opacity = '0'; }, 10000);
-  setTimeout(() => { toast.style.display = 'none'; }, 10500);
+  setTimeout(() => { toast.style.opacity = '0'; }, 6000);
+  setTimeout(() => { toast.style.display = 'none'; }, 6500);
 }
 
 function togglePass() {
