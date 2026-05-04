@@ -407,7 +407,11 @@ function mostrarSeccion(nombre) {
 
   if (nombre === 'registros') cargarRegistros();
   if (nombre === 'base') cargarBase();
-  if (nombre === 'buscar') cargarStats();
+  if (nombre === 'buscar') {
+    cargarStats();
+    // Cargar caché de estudiantes si está vacío
+    if (!estudiantesCache || estudiantesCache.length === 0) cargarBase();
+  }
 }
 
 function toggleSidebar() {
@@ -449,13 +453,30 @@ async function cargarStats() {
   }
 }
 
+function normalizarTexto(str) {
+  return (str || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar tildes
+    .replace(/\s+/g, ' ').trim();
+}
+
+function coincidePorPalabras(nombre, texto) {
+  const palabrasBusqueda = normalizarTexto(texto).split(' ').filter(Boolean);
+  const palabrasNombre = normalizarTexto(nombre).split(' ').filter(Boolean);
+  // Cada palabra escrita debe coincidir con ALGUNA palabra del nombre (inicio o contenido)
+  return palabrasBusqueda.every(pb =>
+    palabrasNombre.some(pn => pn.includes(pb))
+  );
+}
+
 // ============================================================
 //  BUSCAR ESTUDIANTE — tiempo real + filtro por grado
 // ============================================================
 function buscarEstudiante() {
-  const texto = (document.getElementById('inputBuscar').value || '').trim().toLowerCase();
+  const texto = normalizarTexto(document.getElementById('inputBuscar').value || '');
   const gradoFiltro = (document.getElementById('filtroBuscarGrado')?.value || '').toLowerCase();
   const resultadoEl = document.getElementById('resultadoBusqueda');
+  const btnX = document.getElementById('btnLimpiarBuscar');
+  if (btnX) btnX.style.display = texto ? 'flex' : 'none';
 
   if (!texto && !gradoFiltro) {
     resultadoEl.classList.add('hidden');
@@ -467,13 +488,9 @@ function buscarEstudiante() {
 
   if (texto) {
     resultados = resultados.filter(e => {
-      const doc = (e.documento || '').toLowerCase().trim();
-      const nombre = (e.nombre || '').toLowerCase().replace(/\s+/g, ' ').trim();
-      // Buscar por documento exacto
+      const doc = (e.documento || '').trim();
       if (doc.includes(texto)) return true;
-      // Buscar por nombre: todas las palabras escritas deben estar en el nombre (sin importar orden)
-      const palabras = texto.split(/\s+/).filter(Boolean);
-      return palabras.every(p => nombre.includes(p));
+      return coincidePorPalabras(e.nombre, texto);
     });
   }
 
@@ -484,6 +501,15 @@ function buscarEstudiante() {
   }
 
   mostrarResultados(resultados);
+}
+
+function limpiarBuscarEstudiante() {
+  document.getElementById('inputBuscar').value = '';
+  const btnX = document.getElementById('btnLimpiarBuscar');
+  if (btnX) btnX.style.display = 'none';
+  const el = document.getElementById('resultadoBusqueda');
+  el.classList.add('hidden');
+  el.innerHTML = '';
 }
 
 function mostrarResultados(datos) {
@@ -988,13 +1014,24 @@ function renderTablaBase(datos) {
 }
 
 function filtrarBase() {
-  const filtro = document.getElementById('filtroBase').value.toLowerCase();
-  const filtrados = estudiantesCache.filter(e =>
-    (e.nombre || '').toLowerCase().includes(filtro) ||
-    (e.documento || '').toLowerCase().includes(filtro) ||
-    (e.grupo || '').toLowerCase().includes(filtro)
-  );
+  const texto = normalizarTexto(document.getElementById('filtroBase').value || '');
+  const btnX = document.getElementById('btnLimpiarBase');
+  if (btnX) btnX.style.display = texto ? 'flex' : 'none';
+
+  const filtrados = estudiantesCache.filter(e => {
+    if (!texto) return true;
+    const doc = (e.documento || '').toLowerCase();
+    if (doc.includes(texto)) return true;
+    return coincidePorPalabras(e.nombre, texto);
+  });
   renderTablaBase(filtrados);
+}
+
+function limpiarFiltroBase() {
+  document.getElementById('filtroBase').value = '';
+  const btnX = document.getElementById('btnLimpiarBase');
+  if (btnX) btnX.style.display = 'none';
+  renderTablaBase(estudiantesCache);
 }
 
 function abrirModalNuevoEstudiante() {
