@@ -1015,6 +1015,60 @@ async function exportarBaseExcel() {
 }
 
 // ============================================================
+//  ELIMINAR BASE DE DATOS
+// ============================================================
+function abrirModalEliminarBD() {
+  abrirModal('modalEliminarBD');
+}
+
+async function ejecutarEliminarBD(tipo) {
+  const mensajes = {
+    estudiantes: '¿Estás SEGURO de que quieres eliminar TODOS los estudiantes?\n\nEsta acción no se puede deshacer.',
+    registros:   '¿Estás SEGURO de que quieres eliminar TODOS los registros AD-01 y sus seguimientos?\n\nEsta acción no se puede deshacer.',
+    todo:        '⚠️ ADVERTENCIA MÁXIMA ⚠️\n\n¿Estás SEGURO de que quieres eliminar TODO:\n- Todos los estudiantes\n- Todos los registros AD-01\n- Todos los seguimientos\n\nEsta acción es IRREVERSIBLE.'
+  };
+
+  if (!confirm(mensajes[tipo])) return;
+
+  cerrarModal('modalEliminarBD');
+  mostrarLoader(true);
+
+  try {
+    const UUID_DUMMY = '00000000-0000-0000-0000-000000000000';
+
+    if (tipo === 'registros' || tipo === 'todo') {
+      const { error: errSeg } = await db.from('seguimientos').delete().neq('id', UUID_DUMMY);
+      if (errSeg) throw new Error('Error eliminando seguimientos: ' + errSeg.message);
+
+      const { error: errReg } = await db.from('registros').delete().neq('id', UUID_DUMMY);
+      if (errReg) throw new Error('Error eliminando registros: ' + errReg.message);
+    }
+
+    if (tipo === 'estudiantes' || tipo === 'todo') {
+      const { error: errEst } = await db.from('estudiantes').delete().neq('id', UUID_DUMMY);
+      if (errEst) throw new Error('Error eliminando estudiantes: ' + errEst.message);
+    }
+
+    mostrarLoader(false);
+
+    const msgs = {
+      estudiantes: 'Todos los estudiantes fueron eliminados ✓',
+      registros:   'Todos los registros y seguimientos fueron eliminados ✓',
+      todo:        'Todos los datos del sistema fueron eliminados ✓'
+    };
+    mostrarToast(msgs[tipo], 'success');
+
+    cargarBase();
+    cargarRegistros();
+    cargarStats();
+  } catch (err) {
+    mostrarLoader(false);
+    mostrarToast('Error: ' + err.message, 'error');
+    console.error(err);
+  }
+}
+
+// ============================================================
 //  UTILIDADES
 // ============================================================
 function abrirModal(id) {
@@ -1052,7 +1106,7 @@ function fechaHoy() {
 
 // Cerrar modales al hacer click fuera
 document.addEventListener('click', (e) => {
-  ['modalRegistro','modalSeguimiento','modalEstudiante'].forEach(id => {
+  ['modalRegistro','modalSeguimiento','modalEstudiante','modalEliminarBD'].forEach(id => {
     const modal = document.getElementById(id);
     if (modal && e.target === modal) cerrarModal(id);
   });
