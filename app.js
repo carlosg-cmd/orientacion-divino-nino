@@ -476,7 +476,7 @@ function buscarEstudiante() {
   const gradoFiltro = (document.getElementById('filtroBuscarGrado')?.value || '').toLowerCase();
   const resultadoEl = document.getElementById('resultadoBusqueda');
   const btnX = document.getElementById('btnLimpiarBuscar');
-  if (btnX) btnX.style.display = texto ? 'flex' : 'none';
+  if (btnX) btnX.style.display = texto ? 'block' : 'none';
 
   if (!texto && !gradoFiltro) {
     resultadoEl.classList.add('hidden');
@@ -1016,7 +1016,7 @@ function renderTablaBase(datos) {
 function filtrarBase() {
   const texto = normalizarTexto(document.getElementById('filtroBase').value || '');
   const btnX = document.getElementById('btnLimpiarBase');
-  if (btnX) btnX.style.display = texto ? 'flex' : 'none';
+  if (btnX) btnX.style.display = texto ? 'block' : 'none';
 
   const filtrados = estudiantesCache.filter(e => {
     if (!texto) return true;
