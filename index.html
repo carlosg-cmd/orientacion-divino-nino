@@ -35,8 +35,12 @@
     <div class="login-form">
       <h2>Iniciar sesión</h2>
       <div class="field-group">
-        <label>Correo electrónico</label>
-        <input type="email" id="loginEmail" placeholder="Ingrese su Usuario" />
+        <label>Correo Gmail</label>
+        <div style="position:relative;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:18px;">📧</span>
+          <input type="email" id="loginEmail" placeholder="tucorreo@gmail.com"
+            style="padding-left:38px;" />
+        </div>
       </div>
       <div class="field-group">
         <label>Contraseña</label>
@@ -47,6 +51,45 @@
       </div>
       <div id="loginError" class="login-error"></div>
       <button class="btn-login" onclick="iniciarSesion()">Entrar al sistema</button>
+      <div style="text-align:center;margin-top:12px;">
+        <button type="button" onclick="abrirRecuperacion()" style="
+          background:none;border:none;color:#2855a0;font-size:13px;
+          cursor:pointer;text-decoration:underline;padding:0;">
+          ¿Olvidaste tu contraseña?
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal recuperación de contraseña -->
+    <div id="modalRecuperacion" style="
+      display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);
+      z-index:9999;align-items:center;justify-content:center;">
+      <div style="
+        background:white;border-radius:16px;padding:32px;width:90%;max-width:380px;
+        box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <h3 style="margin:0 0 8px;color:#1a3a6b;font-size:18px;">🔐 Recuperar contraseña</h3>
+        <p style="color:#666;font-size:13px;margin:0 0 20px;">
+          Ingresa tu Gmail registrado y te enviaremos un enlace para restablecer tu contraseña.
+        </p>
+        <div class="field-group" style="margin-bottom:16px;">
+          <label style="font-size:13px;">Correo Gmail</label>
+          <input type="email" id="recoveryEmail" placeholder="tucorreo@gmail.com"
+            style="width:100%;padding:10px 12px;border:2px solid #dde3f0;border-radius:10px;font-size:14px;box-sizing:border-box;" />
+        </div>
+        <div id="recoveryMsg" style="font-size:13px;margin-bottom:12px;min-height:18px;"></div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="cerrarRecuperacion()" style="
+            flex:1;padding:10px;border:2px solid #dde3f0;background:white;
+            border-radius:10px;cursor:pointer;font-size:14px;color:#666;">
+            Cancelar
+          </button>
+          <button onclick="enviarRecuperacion()" style="
+            flex:1;padding:10px;background:#1a3a6b;color:white;
+            border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:700;">
+            Enviar enlace
+          </button>
+        </div>
+      </div>
     </div>
     <div class="login-footer">Programado Por Carlos Andres Jimenez M</div>
   </div>
@@ -54,6 +97,15 @@
 
 <!-- ===================== APP PRINCIPAL ===================== -->
 <div id="appMain" class="app-main hidden">
+
+  <!-- BIENVENIDA -->
+  <div id="toastBienvenida" style="
+    display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:linear-gradient(135deg,#1a3a6b,#2855a0);color:white;
+    padding:14px 28px;border-radius:50px;font-size:15px;font-weight:700;
+    box-shadow:0 8px 30px rgba(26,58,107,0.4);z-index:9999;
+    white-space:nowrap;letter-spacing:0.3px;">
+  </div>
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
