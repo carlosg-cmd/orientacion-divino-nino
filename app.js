@@ -370,14 +370,23 @@ function togglePass() {
 // ============================================================
 //  BANNER OFFLINE
 // ============================================================
+function limpiarBannersOffline() {
+  document.querySelectorAll('.banner-offline').forEach(b => b.remove());
+}
+
 function mostrarBannerOffline(seccion) {
-  const ts = cacheLoad(CACHE_KEYS.timestamp);
-  const cuando = ts ? new Date(ts).toLocaleString('es-CO', { dateStyle:'short', timeStyle:'short' }) : 'desconocido';
   const ids = { base: 'tablaBase', registros: 'tablaRegistros' };
   const cont = document.getElementById(ids[seccion]);
   if (!cont) return;
 
+  // No duplicar si ya existe
+  if (cont.previousElementSibling?.classList.contains('banner-offline')) return;
+
+  const ts = cacheLoad(CACHE_KEYS.timestamp);
+  const cuando = ts ? new Date(ts).toLocaleString('es-CO', { dateStyle:'short', timeStyle:'short' }) : 'desconocido';
+
   const banner = document.createElement('div');
+  banner.className = 'banner-offline';
   banner.style.cssText = `
     background:#fff3cd;border:1px solid #ffc107;color:#856404;
     padding:10px 16px;border-radius:10px;font-size:13px;
@@ -724,8 +733,8 @@ async function cargarRegistros(forzarOnline = false) {
   const { data, error } = await db.from('registros').select('*').order('created_at', { ascending: false });
   if (error) { console.error(error); return; }
   registrosCache = data || [];
-  // Guardar en caché
   cacheSave(CACHE_KEYS.registros, registrosCache);
+  limpiarBannersOffline();
   renderTablaRegistros(registrosCache);
 }
 
@@ -928,9 +937,9 @@ async function cargarBase(forzarOnline = false) {
   }
 
   estudiantesCache = todos;
-  // Guardar en caché local
   cacheSave(CACHE_KEYS.estudiantes, estudiantesCache);
   cacheSave(CACHE_KEYS.timestamp, Date.now());
+  limpiarBannersOffline();
   renderTablaBase(estudiantesCache);
   poblarFiltroGrados();
 }
