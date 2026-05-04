@@ -1170,6 +1170,128 @@ async function exportarBaseExcel() {
 }
 
 // ============================================================
+//  PERFIL DE USUARIO — Cambiar Gmail y contraseña
+// ============================================================
+function abrirPerfil() {
+  document.getElementById('perfilNombreActual').textContent = usuarioActual.nombre;
+  document.getElementById('perfilEmailActual').textContent = usuarioActual.email;
+  document.getElementById('perfilNuevoEmail').value = '';
+  document.getElementById('perfilPassActual').value = '';
+  document.getElementById('perfilPassNueva').value = '';
+  document.getElementById('perfilPassConfirm').value = '';
+  document.getElementById('perfilMsg').textContent = '';
+  document.getElementById('perfilMsg').style.color = '#c0392b';
+  abrirModal('modalPerfil');
+}
+
+async function guardarPerfil() {
+  const msgEl = document.getElementById('perfilMsg');
+  msgEl.style.color = '#c0392b';
+  msgEl.textContent = '';
+
+  const nuevoEmail    = document.getElementById('perfilNuevoEmail').value.trim().toLowerCase();
+  const passActual    = document.getElementById('perfilPassActual').value;
+  const passNueva     = document.getElementById('perfilPassNueva').value;
+  const passConfirm   = document.getElementById('perfilPassConfirm').value;
+
+  const cambiaEmail = nuevoEmail !== '';
+  const cambiaPass  = passActual !== '' || passNueva !== '' || passConfirm !== '';
+
+  if (!cambiaEmail && !cambiaPass) {
+    msgEl.textContent = 'No ingresaste ningún cambio.';
+    return;
+  }
+
+  // Validar nuevo Gmail
+  if (cambiaEmail) {
+    if (!nuevoEmail.endsWith('@gmail.com')) {
+      msgEl.textContent = 'El nuevo correo debe ser un Gmail (@gmail.com).';
+      return;
+    }
+    if (nuevoEmail === usuarioActual.email) {
+      msgEl.textContent = 'El nuevo Gmail es igual al actual.';
+      return;
+    }
+  }
+
+  // Validar contraseña
+  if (cambiaPass) {
+    if (!passActual) {
+      msgEl.textContent = 'Ingresa tu contraseña actual para confirmar los cambios.';
+      return;
+    }
+    if (passActual !== usuarioActual.password) {
+      msgEl.textContent = 'La contraseña actual no es correcta.';
+      return;
+    }
+    if (passNueva.length < 6) {
+      msgEl.textContent = 'La nueva contraseña debe tener al menos 6 caracteres.';
+      return;
+    }
+    if (passNueva !== passConfirm) {
+      msgEl.textContent = 'Las contraseñas nuevas no coinciden.';
+      return;
+    }
+  } else if (cambiaEmail && !passActual) {
+    // Si solo cambia email, igual pedir contraseña actual para confirmar identidad
+    msgEl.textContent = 'Ingresa tu contraseña actual para confirmar el cambio de Gmail.';
+    return;
+  } else if (cambiaEmail && passActual !== usuarioActual.password) {
+    msgEl.textContent = 'La contraseña actual no es correcta.';
+    return;
+  }
+
+  // Construir objeto de actualización
+  const updates = {};
+  if (cambiaEmail) updates.email = nuevoEmail;
+  if (cambiaPass)  updates.password = passNueva;
+
+  mostrarLoader(true);
+  const { error } = await db
+    .from('usuarios')
+    .update(updates)
+    .eq('id', usuarioActual.id);
+  mostrarLoader(false);
+
+  if (error) {
+    if (error.code === '23505') {
+      msgEl.textContent = 'Ese Gmail ya está registrado por otro usuario.';
+    } else {
+      msgEl.textContent = 'Error al guardar: ' + error.message;
+    }
+    return;
+  }
+
+  // Actualizar sesión local
+  if (cambiaEmail) usuarioActual.email = nuevoEmail;
+  if (cambiaPass)  usuarioActual.password = passNueva;
+  localStorage.setItem('ad01_sesion', JSON.stringify(usuarioActual));
+
+  // Actualizar info visible en sidebar
+  document.getElementById('perfilEmailActual').textContent = usuarioActual.email;
+
+  msgEl.style.color = '#27ae60';
+  let confirmMsg = '✓ ';
+  if (cambiaEmail && cambiaPass) confirmMsg += 'Gmail y contraseña actualizados correctamente.';
+  else if (cambiaEmail) confirmMsg += 'Gmail actualizado correctamente.';
+  else confirmMsg += 'Contraseña actualizada correctamente.';
+  msgEl.textContent = confirmMsg;
+
+  // Limpiar campos
+  document.getElementById('perfilNuevoEmail').value = '';
+  document.getElementById('perfilPassActual').value = '';
+  document.getElementById('perfilPassNueva').value = '';
+  document.getElementById('perfilPassConfirm').value = '';
+
+  mostrarToast(confirmMsg, 'success');
+}
+
+function togglePassCampo(id) {
+  const input = document.getElementById(id);
+  if (input) input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+// ============================================================
 //  ELIMINAR BASE DE DATOS
 // ============================================================
 function abrirModalEliminarBD() {
@@ -1261,7 +1383,7 @@ function fechaHoy() {
 
 // Cerrar modales al hacer click fuera
 document.addEventListener('click', (e) => {
-  ['modalRegistro','modalSeguimiento','modalEstudiante','modalEliminarBD'].forEach(id => {
+  ['modalRegistro','modalSeguimiento','modalEstudiante','modalEliminarBD','modalPerfil'].forEach(id => {
     const modal = document.getElementById(id);
     if (modal && e.target === modal) cerrarModal(id);
   });
