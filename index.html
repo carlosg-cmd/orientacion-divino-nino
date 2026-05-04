@@ -138,11 +138,15 @@
     </nav>
 
     <div class="sidebar-user">
-      <div class="user-avatar">👤</div>
-      <div class="user-info">
+      <div class="user-avatar" onclick="abrirPerfil()" title="Editar perfil"
+        style="cursor:pointer;" >👤</div>
+      <div class="user-info" onclick="abrirPerfil()" title="Editar perfil"
+        style="cursor:pointer;flex:1;">
         <div class="user-name" id="sidebarUserName">Orientadora</div>
         <div class="user-role" id="sidebarUserRole">Orientación</div>
       </div>
+      <button class="btn-logout" onclick="abrirPerfil()" title="Editar perfil"
+        style="font-size:16px;margin-right:4px;">✏️</button>
       <button class="btn-logout" onclick="cerrarSesion()" title="Cerrar sesión">⇥</button>
     </div>
   </aside>
@@ -486,6 +490,69 @@
     </div>
 
   </main>
+</div>
+
+<!-- ======= MODAL: PERFIL DE USUARIO ======= -->
+<div id="modalPerfil" class="modal hidden">
+  <div class="modal-content modal-sm">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1a3a6b,#2855a0);">
+      <h3 style="color:white;">✏️ Editar mi perfil</h3>
+      <button onclick="cerrarModal('modalPerfil')" style="color:white;">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Info actual -->
+      <div style="
+        background:#f0f4ff;border-radius:10px;padding:12px 16px;
+        margin-bottom:20px;font-size:13px;color:#444;line-height:1.8;">
+        <div><strong>Usuario actual:</strong> <span id="perfilNombreActual"></span></div>
+        <div><strong>Gmail actual:</strong> <span id="perfilEmailActual" style="color:#2855a0;"></span></div>
+      </div>
+
+      <!-- Cambiar Gmail -->
+      <div style="margin-bottom:6px;font-weight:700;color:#1a3a6b;font-size:13px;">📧 Nuevo Gmail</div>
+      <div class="field-group" style="margin-bottom:16px;">
+        <input type="email" id="perfilNuevoEmail" placeholder="nuevo@gmail.com"
+          style="width:100%;padding:10px 12px;border:2px solid #dde3f0;
+          border-radius:10px;font-size:14px;box-sizing:border-box;" />
+      </div>
+
+      <div style="border-top:1px solid #eee;margin:16px 0;"></div>
+
+      <!-- Cambiar contraseña -->
+      <div style="margin-bottom:6px;font-weight:700;color:#1a3a6b;font-size:13px;">🔐 Cambiar contraseña</div>
+      <div class="field-group" style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#666;">Contraseña actual</label>
+        <div class="pass-wrap">
+          <input type="password" id="perfilPassActual" placeholder="Contraseña actual" />
+          <button type="button" class="toggle-pass"
+            onclick="togglePassCampo('perfilPassActual')">👁</button>
+        </div>
+      </div>
+      <div class="field-group" style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#666;">Nueva contraseña</label>
+        <div class="pass-wrap">
+          <input type="password" id="perfilPassNueva" placeholder="Nueva contraseña" />
+          <button type="button" class="toggle-pass"
+            onclick="togglePassCampo('perfilPassNueva')">👁</button>
+        </div>
+      </div>
+      <div class="field-group" style="margin-bottom:4px;">
+        <label style="font-size:12px;color:#666;">Confirmar nueva contraseña</label>
+        <div class="pass-wrap">
+          <input type="password" id="perfilPassConfirm" placeholder="Repite la nueva contraseña" />
+          <button type="button" class="toggle-pass"
+            onclick="togglePassCampo('perfilPassConfirm')">👁</button>
+        </div>
+      </div>
+
+      <div id="perfilMsg" style="font-size:13px;margin-top:12px;min-height:18px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModal('modalPerfil')">Cancelar</button>
+      <button class="btn-primary" onclick="guardarPerfil()">💾 Guardar cambios</button>
+    </div>
+  </div>
 </div>
 
 <!-- TOAST NOTIFICATION -->
