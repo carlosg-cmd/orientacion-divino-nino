@@ -126,7 +126,7 @@
     placeholder="Buscar por documento o nombre..."
     oninput="buscarEstudiante()"
     style="flex:1; min-width:220px;" />
-  <select id="filtroBuscarGrado" onchange="🔍buscarEstudiante()" style="
+  <select id="filtroBuscarGrado" onchange="buscarEstudiante()" style="
     padding:10px 14px;
     border:2px solid var(--borde);
     border-radius:10px;
@@ -141,9 +141,6 @@
 
   <div id="resultadoBusqueda" class="resultado-card hidden"></div>
 </section>
-
-      <div id="resultadoBusqueda" class="resultado-card hidden"></div>
-    </section>
 
     <!-- ======= SECCIÓN: FORMULARIO AD-01 ======= -->
     <section id="seccion-formulario" class="seccion">
@@ -320,6 +317,7 @@
         </label>
         <button class="btn-export" onclick="abrirModalNuevoEstudiante()">➕ Agregar</button>
         <button class="btn-export" onclick="exportarBaseExcel()">📊 Exportar</button>
+        <button class="btn-export" onclick="abrirModalEliminarBD()" style="background:#c0392b;color:white;border-color:#c0392b;">🗑 Eliminar BD</button>
       </div>
 
       <div id="tablaBase" class="tabla-wrapper"></div>
@@ -383,6 +381,57 @@
         </div>
       </div>
     </section>
+
+    <!-- ======= MODAL: ELIMINAR BASE DE DATOS ======= -->
+    <div id="modalEliminarBD" class="modal hidden">
+      <div class="modal-content modal-sm">
+        <div class="modal-header" style="background:#c0392b;">
+          <h3 style="color:white;">⚠️ Eliminar Datos</h3>
+          <button onclick="cerrarModal('modalEliminarBD')" style="color:white;">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="color:#c0392b;font-weight:700;margin-bottom:16px;">⚠️ Esta acción no se puede deshacer. ¿Qué deseas eliminar?</p>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <button onclick="ejecutarEliminarBD('estudiantes')" style="
+              padding:14px 18px;
+              background:#fff3f3;
+              border:2px solid #e74c3c;
+              border-radius:10px;
+              color:#c0392b;
+              font-weight:700;
+              font-size:14px;
+              cursor:pointer;
+              text-align:left;
+            ">👥 Solo estudiantes<br/><span style="font-weight:400;font-size:12px;color:#666;">Elimina todos los estudiantes de la base de datos</span></button>
+            <button onclick="ejecutarEliminarBD('registros')" style="
+              padding:14px 18px;
+              background:#fff3f3;
+              border:2px solid #e74c3c;
+              border-radius:10px;
+              color:#c0392b;
+              font-weight:700;
+              font-size:14px;
+              cursor:pointer;
+              text-align:left;
+            ">🗂 Solo registros AD-01<br/><span style="font-weight:400;font-size:12px;color:#666;">Elimina todos los registros de atención y seguimientos</span></button>
+            <button onclick="ejecutarEliminarBD('todo')" style="
+              padding:14px 18px;
+              background:#c0392b;
+              border:2px solid #922b21;
+              border-radius:10px;
+              color:white;
+              font-weight:700;
+              font-size:14px;
+              cursor:pointer;
+              text-align:left;
+            ">💥 Todo (estudiantes + registros)<br/><span style="font-weight:400;font-size:12px;opacity:0.85;">Elimina absolutamente todos los datos del sistema</span></button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="cerrarModal('modalEliminarBD')">Cancelar</button>
+        </div>
+      </div>
+    </div>
 
   </main>
 </div>
