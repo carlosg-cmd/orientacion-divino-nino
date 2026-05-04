@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Sistema de Información para Orientadores Escolares</title>
+  <title>Sistema Registro Orientación</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
@@ -50,7 +50,7 @@
         </div>
       </div>
       <div id="loginError" class="login-error"></div>
-      <button class="btn-login" onclick="iniciarSesion()">Entrar</button>
+      <button class="btn-login" onclick="iniciarSesion()">Entrar al sistema</button>
       <div style="text-align:center;margin-top:12px;">
         <button type="button" onclick="abrirRecuperacion()" style="
           background:none;border:none;color:#2855a0;font-size:13px;
@@ -138,7 +138,7 @@
       </button>
       <button class="nav-btn" onclick="cerrarSesion()" style="margin-top:auto;color:#e74c3c;">
         <span class="nav-icon">🚪</span>
-        <span class="nav-label">Cerrar sesión</span>
+        <span class="nav-label">Salir</span>
       </button>
     </nav>
 
@@ -192,10 +192,17 @@
 
   <!-- FILTROS -->
   <div class="search-box" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-  <input type="text" id="inputBuscar"
-    placeholder="Buscar por documento o nombre..."
-    oninput="buscarEstudiante()"
-    style="flex:1; min-width:220px;" />
+  <div style="position:relative;flex:1;min-width:220px;">
+    <input type="text" id="inputBuscar"
+      placeholder="Buscar por documento o nombre..."
+      oninput="buscarEstudiante()"
+      style="width:100%;padding-right:36px;box-sizing:border-box;" />
+    <button id="btnLimpiarBuscar" onclick="limpiarBuscarEstudiante()" style="
+      display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);
+      background:none;border:none;cursor:pointer;font-size:18px;color:#999;
+      width:24px;height:24px;align-items:center;justify-content:center;
+      border-radius:50%;padding:0;line-height:1;">✕</button>
+  </div>
   <select id="filtroBuscarGrado" onchange="buscarEstudiante()" style="
     padding:10px 14px;
     border:2px solid var(--borde);
@@ -380,7 +387,14 @@
       </div>
 
       <div class="toolbar">
-        <input type="text" id="filtroBase" placeholder="Buscar estudiante..." oninput="filtrarBase()" />
+        <div style="position:relative;display:inline-flex;align-items:center;">
+          <input type="text" id="filtroBase" placeholder="Buscar estudiante..." oninput="filtrarBase()" style="padding-right:36px;" />
+          <button id="btnLimpiarBase" onclick="limpiarFiltroBase()" style="
+            display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);
+            background:none;border:none;cursor:pointer;font-size:18px;color:#999;
+            width:24px;height:24px;align-items:center;justify-content:center;
+            border-radius:50%;padding:0;line-height:1;">✕</button>
+        </div>
         <label class="btn-export" style="cursor:pointer;">
           📂 Cargar Excel
           <input type="file" id="fileExcel" accept=".xlsx,.csv" onchange="cargarExcel(event)" style="display:none" />
