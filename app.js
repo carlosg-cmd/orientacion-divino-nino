@@ -52,13 +52,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 //  AUTENTICACIÓN
 // ============================================================
 async function iniciarSesion() {
-  const email = document.getElementById('loginEmail').value.trim();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const password = document.getElementById('loginPassword').value;
   const errorEl = document.getElementById('loginError');
   errorEl.textContent = '';
 
   if (!email || !password) {
     errorEl.textContent = 'Por favor completa todos los campos.';
+    return;
+  }
+
+  if (!email.endsWith('@gmail.com')) {
+    errorEl.textContent = 'Debes ingresar un correo Gmail (@gmail.com).';
     return;
   }
 
@@ -89,6 +94,63 @@ async function iniciarSesion() {
   mostrarLoader(false);
 }
 
+// ============================================================
+//  RECUPERACIÓN DE CONTRASEÑA
+// ============================================================
+function abrirRecuperacion() {
+  const modal = document.getElementById('modalRecuperacion');
+  modal.style.display = 'flex';
+  document.getElementById('recoveryEmail').value =
+    document.getElementById('loginEmail').value || '';
+  document.getElementById('recoveryMsg').textContent = '';
+}
+
+function cerrarRecuperacion() {
+  document.getElementById('modalRecuperacion').style.display = 'none';
+}
+
+async function enviarRecuperacion() {
+  const email = document.getElementById('recoveryEmail').value.trim().toLowerCase();
+  const msgEl = document.getElementById('recoveryMsg');
+  msgEl.style.color = '#c0392b';
+
+  if (!email) {
+    msgEl.textContent = 'Ingresa tu correo Gmail.';
+    return;
+  }
+  if (!email.endsWith('@gmail.com')) {
+    msgEl.textContent = 'Debes ingresar un correo Gmail (@gmail.com).';
+    return;
+  }
+
+  // Verificar que el correo existe en la tabla de usuarios
+  const { data, error } = await db
+    .from('usuarios')
+    .select('id')
+    .eq('email', email)
+    .single();
+
+  if (error || !data) {
+    msgEl.textContent = 'Este correo no está registrado en el sistema.';
+    return;
+  }
+
+  // Enviar correo de recuperación vía Supabase Auth
+  const { error: resetError } = await db.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+
+  if (resetError) {
+    // Si Supabase Auth no tiene ese usuario, mostrar instrucción manual
+    msgEl.style.color = '#e67e22';
+    msgEl.textContent = 'Contacta al administrador para restablecer tu contraseña.';
+    return;
+  }
+
+  msgEl.style.color = '#27ae60';
+  msgEl.textContent = '✓ Enlace enviado. Revisa tu Gmail (incluida la carpeta de spam).';
+}
+
 function cerrarSesion() {
   if (!confirm('¿Cerrar sesión?')) return;
   localStorage.removeItem('ad01_sesion');
@@ -104,9 +166,37 @@ function mostrarApp() {
   document.getElementById('appMain').classList.remove('hidden');
   document.getElementById('sidebarUserName').textContent = usuarioActual.nombre;
   document.getElementById('sidebarUserRole').textContent = usuarioActual.rol || 'Orientación';
+  mostrarBienvenida(usuarioActual.nombre);
   cargarStats();
   cargarRegistros();
   cargarBase(); // poblarFiltroGrados se llama dentro de cargarBase
+}
+
+function mostrarBienvenida(nombre) {
+  const hora = new Date().getHours();
+  let saludo;
+  if (hora >= 5 && hora < 12) {
+    saludo = '🌅 ¡Buenos días';
+  } else if (hora >= 12 && hora < 18) {
+    saludo = '☀️ ¡Buenas tardes';
+  } else {
+    saludo = '🌙 ¡Buenas noches';
+  }
+
+  // Usar solo el primer nombre
+  const primerNombre = nombre.trim().split(' ')[0];
+  const mensaje = `${saludo}, ${primerNombre}!`;
+
+  const toast = document.getElementById('toastBienvenida');
+  toast.textContent = mensaje;
+  toast.style.display = 'block';
+
+  // Animación de entrada y salida
+  toast.style.opacity = '0';
+  toast.style.transition = 'opacity 0.5s ease';
+  setTimeout(() => { toast.style.opacity = '1'; }, 50);
+  setTimeout(() => { toast.style.opacity = '0'; }, 4000);
+  setTimeout(() => { toast.style.display = 'none'; }, 4500);
 }
 
 function togglePass() {
