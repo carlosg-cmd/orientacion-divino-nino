@@ -1,7 +1,103 @@
 // ============================================================
 //  SISTEMA AD-01 — I.E. Divino Niño
-//  app.js v2.1 — Con búsqueda en tiempo real y filtro por grado
+//  app.js v2.2 — Soporte offline con caché local y sincronización
 // ============================================================
+
+// ============================================================
+//  SISTEMA OFFLINE / CACHÉ LOCAL
+// ============================================================
+const CACHE_KEYS = {
+  estudiantes: 'sipoe_cache_estudiantes',
+  registros:   'sipoe_cache_registros',
+  colaSync:    'sipoe_cola_sync',
+  timestamp:   'sipoe_cache_timestamp'
+};
+
+// ---- Guardar/leer caché ----
+function cacheSave(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) { console.warn('Cache write error:', e); }
+}
+function cacheLoad(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+// ---- Cola de operaciones pendientes ----
+function colaAgregar(operacion) {
+  const cola = cacheLoad(CACHE_KEYS.colaSync) || [];
+  cola.push({ ...operacion, ts: Date.now() });
+  cacheSave(CACHE_KEYS.colaSync, cola);
+}
+
+// ---- Estado de conexión ----
+let estaOnline = navigator.onLine;
+
+function actualizarIndicadorConexion(online) {
+  estaOnline = online;
+  const ind = document.getElementById('indicadorConexion');
+  if (!ind) return;
+  if (online) {
+    ind.textContent = '🟢 En línea';
+    ind.style.background = 'rgba(39,174,96,0.15)';
+    ind.style.color = '#1e8449';
+    ind.style.borderColor = '#27ae60';
+  } else {
+    ind.textContent = '🔴 Sin conexión';
+    ind.style.background = 'rgba(192,57,43,0.12)';
+    ind.style.color = '#c0392b';
+    ind.style.borderColor = '#e74c3c';
+  }
+}
+
+window.addEventListener('online', async () => {
+  actualizarIndicadorConexion(true);
+  mostrarToast('✅ Conexión restaurada — sincronizando datos...', 'success');
+  await sincronizarCola();
+  // Actualizar caché con datos frescos de Supabase
+  await cargarBase(true);
+  await cargarRegistros(true);
+  await cargarStats();
+});
+
+window.addEventListener('offline', () => {
+  actualizarIndicadorConexion(false);
+  mostrarToast('⚠️ Sin conexión — trabajando con datos locales', '');
+});
+
+// ---- Sincronizar cola de operaciones pendientes ----
+async function sincronizarCola() {
+  const cola = cacheLoad(CACHE_KEYS.colaSync) || [];
+  if (!cola.length) return;
+
+  mostrarLoader(true);
+  const errores = [];
+
+  for (const op of cola) {
+    try {
+      if (op.tipo === 'insertar_registro') {
+        const { error } = await db.from('registros').insert(op.datos);
+        if (error) errores.push(op);
+      } else if (op.tipo === 'insertar_seguimiento') {
+        const { error } = await db.from('seguimientos').insert(op.datos);
+        if (error) errores.push(op);
+      } else if (op.tipo === 'eliminar_registro') {
+        await db.from('seguimientos').delete().eq('registro_id', op.id);
+        await db.from('registros').delete().eq('id', op.id);
+      }
+    } catch(e) {
+      errores.push(op);
+    }
+  }
+
+  cacheSave(CACHE_KEYS.colaSync, errores);
+  mostrarLoader(false);
+
+  const ok = cola.length - errores.length;
+  if (ok > 0) mostrarToast(`✅ ${ok} operación(es) sincronizada(s) con Supabase`, 'success');
+  if (errores.length > 0) mostrarToast(`⚠️ ${errores.length} operación(es) no pudieron sincronizarse`, 'error');
+}
 
 // ============================================================
 //  CONFIGURACIÓN SUPABASE
@@ -24,6 +120,9 @@ let registrosCache = [];
 //  INICIALIZACIÓN
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
+  // Iniciar indicador de conexión
+  actualizarIndicadorConexion(navigator.onLine);
+
   const sesion = localStorage.getItem('ad01_sesion');
   if (sesion) {
     try {
@@ -67,6 +166,21 @@ async function iniciarSesion() {
     return;
   }
 
+  // Modo offline: intentar con caché de sesión
+  if (!navigator.onLine) {
+    const sesionCache = cacheLoad('sipoe_usuarios_cache') || [];
+    const usuarioCache = sesionCache.find(u => u.email === email && u.password === password);
+    if (usuarioCache) {
+      usuarioActual = usuarioCache;
+      localStorage.setItem('ad01_sesion', JSON.stringify(usuarioCache));
+      mostrarApp();
+      mostrarToast('⚠️ Modo offline — acceso con credenciales guardadas', '');
+    } else {
+      errorEl.textContent = 'Sin conexión y no hay credenciales guardadas para este correo.';
+    }
+    return;
+  }
+
   mostrarLoader(true);
 
   try {
@@ -82,6 +196,12 @@ async function iniciarSesion() {
       mostrarLoader(false);
       return;
     }
+
+    // Guardar usuario en caché para acceso offline futuro
+    const usuariosCache = cacheLoad('sipoe_usuarios_cache') || [];
+    const idx = usuariosCache.findIndex(u => u.email === data.email);
+    if (idx >= 0) usuariosCache[idx] = data; else usuariosCache.push(data);
+    cacheSave('sipoe_usuarios_cache', usuariosCache);
 
     usuarioActual = data;
     localStorage.setItem('ad01_sesion', JSON.stringify(data));
@@ -248,6 +368,26 @@ function togglePass() {
 }
 
 // ============================================================
+//  BANNER OFFLINE
+// ============================================================
+function mostrarBannerOffline(seccion) {
+  const ts = cacheLoad(CACHE_KEYS.timestamp);
+  const cuando = ts ? new Date(ts).toLocaleString('es-CO', { dateStyle:'short', timeStyle:'short' }) : 'desconocido';
+  const ids = { base: 'tablaBase', registros: 'tablaRegistros' };
+  const cont = document.getElementById(ids[seccion]);
+  if (!cont) return;
+
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    background:#fff3cd;border:1px solid #ffc107;color:#856404;
+    padding:10px 16px;border-radius:10px;font-size:13px;
+    margin-bottom:12px;display:flex;align-items:center;gap:8px;
+  `;
+  banner.innerHTML = `⚠️ <strong>Modo sin conexión</strong> — mostrando datos guardados localmente el ${cuando}. Los cambios se sincronizarán al recuperar internet.`;
+  cont.insertAdjacentElement('beforebegin', banner);
+}
+
+// ============================================================
 //  NAVEGACIÓN
 // ============================================================
 function mostrarSeccion(nombre) {
@@ -269,6 +409,17 @@ function toggleSidebar() {
 //  ESTADÍSTICAS
 // ============================================================
 async function cargarStats() {
+  if (!navigator.onLine) {
+    // Usar caché local
+    const ests = cacheLoad(CACHE_KEYS.estudiantes) || [];
+    const regs = cacheLoad(CACHE_KEYS.registros) || [];
+    const hoy = new Date().toISOString().split('T')[0];
+    const hoyCount = regs.filter(r => r.fecha === hoy).length;
+    document.getElementById('statEstudiantes').textContent = ests.length;
+    document.getElementById('statRegistros').textContent = regs.length;
+    document.getElementById('statHoy').textContent = hoyCount;
+    return;
+  }
   try {
     const [{ count: cEst }, { count: cReg }] = await Promise.all([
       db.from('estudiantes').select('*', { count: 'exact', head: true }),
@@ -442,6 +593,21 @@ async function autocompletar() {
   const doc = document.getElementById('fDoc').value.trim();
   if (!doc) { mostrarToast('Ingresa el documento primero', 'error'); return; }
 
+  // Intentar desde caché primero
+  const enCache = estudiantesCache.find(e => e.documento === doc);
+  if (enCache) {
+    document.getElementById('fNombre').value = enCache.nombre || '';
+    document.getElementById('fGrupo').value = enCache.grupo || '';
+    document.getElementById('fCelular').value = enCache.celular || '';
+    mostrarToast('Datos autocargados ✓', 'success');
+    return;
+  }
+
+  if (!navigator.onLine) {
+    mostrarToast('Sin conexión y estudiante no encontrado en caché local', 'error');
+    return;
+  }
+
   mostrarLoader(true);
   const { data, error } = await db.from('estudiantes').select('*').eq('documento', doc).single();
   mostrarLoader(false);
@@ -486,8 +652,28 @@ async function guardarRegistro() {
     usuario_nombre: usuarioActual.nombre
   };
 
-  const { data: est } = await db.from('estudiantes').select('id').eq('documento', doc).single();
+  // Buscar estudiante_id (del caché si está offline)
+  const est = estudiantesCache.find(e => e.documento === doc);
   if (est) registro.estudiante_id = est.id;
+
+  // Modo offline: guardar en caché local y cola de sincronización
+  if (!navigator.onLine) {
+    const regLocal = {
+      ...registro,
+      id: 'local_' + Date.now(),
+      created_at: new Date().toISOString(),
+      _pendiente: true
+    };
+    const regsCache = cacheLoad(CACHE_KEYS.registros) || [];
+    regsCache.unshift(regLocal);
+    cacheSave(CACHE_KEYS.registros, regsCache);
+    registrosCache = regsCache;
+    colaAgregar({ tipo: 'insertar_registro', datos: registro });
+    mostrarToast('💾 Registro guardado localmente — se subirá al volver la conexión', 'success');
+    limpiarFormulario();
+    cargarStats();
+    return;
+  }
 
   mostrarLoader(true);
   const { error } = await db.from('registros').insert(registro);
@@ -500,6 +686,8 @@ async function guardarRegistro() {
   mostrarToast('Registro guardado exitosamente ✓', 'success');
   limpiarFormulario();
   cargarStats();
+  // Actualizar caché
+  await cargarRegistros(true);
 }
 
 function limpiarFormulario() {
@@ -518,10 +706,26 @@ function limpiarFormulario() {
 // ============================================================
 //  REGISTROS GUARDADOS
 // ============================================================
-async function cargarRegistros() {
+async function cargarRegistros(forzarOnline = false) {
+  // Modo offline: usar caché
+  if (!navigator.onLine && !forzarOnline) {
+    const cached = cacheLoad(CACHE_KEYS.registros);
+    if (cached) {
+      registrosCache = cached;
+      renderTablaRegistros(registrosCache);
+      mostrarBannerOffline('registros');
+      return;
+    }
+    registrosCache = [];
+    renderTablaRegistros([]);
+    return;
+  }
+
   const { data, error } = await db.from('registros').select('*').order('created_at', { ascending: false });
   if (error) { console.error(error); return; }
   registrosCache = data || [];
+  // Guardar en caché
+  cacheSave(CACHE_KEYS.registros, registrosCache);
   renderTablaRegistros(registrosCache);
 }
 
@@ -621,13 +825,25 @@ async function verRegistro(id) {
 
 async function eliminarRegistro(id) {
   if (!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
+
+  // Modo offline: eliminar del caché local
+  if (!navigator.onLine) {
+    registrosCache = registrosCache.filter(r => r.id !== id);
+    cacheSave(CACHE_KEYS.registros, registrosCache);
+    colaAgregar({ tipo: 'eliminar_registro', id });
+    renderTablaRegistros(registrosCache);
+    mostrarToast('Registro eliminado localmente ✓', 'success');
+    cargarStats();
+    return;
+  }
+
   mostrarLoader(true);
   await db.from('seguimientos').delete().eq('registro_id', id);
   const { error } = await db.from('registros').delete().eq('id', id);
   mostrarLoader(false);
   if (error) { mostrarToast('Error al eliminar', 'error'); return; }
   mostrarToast('Registro eliminado', 'success');
-  cargarRegistros();
+  cargarRegistros(true);
   cargarStats();
 }
 
@@ -643,14 +859,24 @@ async function guardarSeguimiento() {
   const fecha = document.getElementById('segFecha').value;
   if (!obs) { mostrarToast('Escribe la observación del seguimiento', 'error'); return; }
 
-  mostrarLoader(true);
-  const { error } = await db.from('seguimientos').insert({
+  const datos = {
     registro_id: registroActualId,
     obs,
     fecha,
     usuario_id: usuarioActual.id,
     usuario_nombre: usuarioActual.nombre
-  });
+  };
+
+  // Modo offline
+  if (!navigator.onLine) {
+    colaAgregar({ tipo: 'insertar_seguimiento', datos });
+    mostrarToast('💾 Seguimiento guardado localmente — se subirá al volver la conexión', 'success');
+    cerrarModal('modalSeguimiento');
+    return;
+  }
+
+  mostrarLoader(true);
+  const { error } = await db.from('seguimientos').insert(datos);
   mostrarLoader(false);
 
   if (error) { mostrarToast('Error al guardar seguimiento', 'error'); return; }
@@ -662,7 +888,22 @@ async function guardarSeguimiento() {
 // ============================================================
 //  BASE DE DATOS DE ESTUDIANTES
 // ============================================================
-async function cargarBase() {
+async function cargarBase(forzarOnline = false) {
+  // Modo offline: usar caché local
+  if (!navigator.onLine && !forzarOnline) {
+    const cached = cacheLoad(CACHE_KEYS.estudiantes);
+    if (cached && cached.length > 0) {
+      estudiantesCache = cached;
+      renderTablaBase(estudiantesCache);
+      poblarFiltroGrados();
+      mostrarBannerOffline('base');
+      return;
+    }
+    estudiantesCache = [];
+    renderTablaBase([]);
+    return;
+  }
+
   const LIMITE = 1000;
   let todos = [];
   let desde = 0;
@@ -687,6 +928,9 @@ async function cargarBase() {
   }
 
   estudiantesCache = todos;
+  // Guardar en caché local
+  cacheSave(CACHE_KEYS.estudiantes, estudiantesCache);
+  cacheSave(CACHE_KEYS.timestamp, Date.now());
   renderTablaBase(estudiantesCache);
   poblarFiltroGrados();
 }
