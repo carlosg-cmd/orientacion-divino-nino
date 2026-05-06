@@ -16,6 +16,18 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // Registrar Service Worker para modo offline
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW registrado:', reg.scope))
+          .catch(err => console.warn('SW error:', err));
+      });
+    }
+  </script>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#1a3a6b">
 </head>
 <body>
 
