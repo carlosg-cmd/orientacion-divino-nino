@@ -4,7 +4,7 @@
 //  v1.0 — 2026-05-06
 // ============================================================
 
-const CACHE_NAME = 'sipoe-v2026-05-06';
+const CACHE_NAME = 'sipoe-v2026-05-06-2';
 
 // Archivos que se guardan en caché al instalar
 const ARCHIVOS_CACHE = [
