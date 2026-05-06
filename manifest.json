@@ -1,0 +1,22 @@
+{
+  "name": "SIPOE - I.E. Divino Niño",
+  "short_name": "SIPOE",
+  "description": "Sistema de Información Psicosocial para Orientación Escolar",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1a3a6b",
+  "theme_color": "#1a3a6b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4da.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4da.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
