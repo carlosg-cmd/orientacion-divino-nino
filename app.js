@@ -168,15 +168,35 @@ async function iniciarSesion() {
 
   // Modo offline: intentar con caché de sesión
   if (!navigator.onLine) {
-    const sesionCache = cacheLoad('sipoe_usuarios_cache') || [];
-    const usuarioCache = sesionCache.find(u => u.email === email && u.password === password);
+    // Primero intentar con la sesión activa guardada
+    const sesionGuardada = localStorage.getItem('ad01_sesion');
+    if (sesionGuardada) {
+      try {
+        const u = JSON.parse(sesionGuardada);
+        if (u.email === email) {
+          // Verificar contraseña contra el caché de usuarios
+          const usuariosCache = cacheLoad('sipoe_usuarios_cache') || [];
+          const enCache = usuariosCache.find(uc => uc.email === email);
+          const passOk = enCache ? enCache.password === password : true;
+          if (passOk) {
+            usuarioActual = enCache || u;
+            mostrarApp();
+            mostrarToast('⚠️ Modo offline — acceso con sesión guardada', '');
+            return;
+          }
+        }
+      } catch(e) {}
+    }
+    // Segundo intento: buscar en caché de usuarios
+    const usuariosCache = cacheLoad('sipoe_usuarios_cache') || [];
+    const usuarioCache = usuariosCache.find(u => u.email === email && u.password === password);
     if (usuarioCache) {
       usuarioActual = usuarioCache;
       localStorage.setItem('ad01_sesion', JSON.stringify(usuarioCache));
       mostrarApp();
       mostrarToast('⚠️ Modo offline — acceso con credenciales guardadas', '');
     } else {
-      errorEl.textContent = 'Sin conexión y no hay credenciales guardadas para este correo.';
+      errorEl.textContent = 'Sin conexión. Ingresa con el correo y contraseña que usaste la última vez con internet.';
     }
     return;
   }
