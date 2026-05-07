@@ -54,7 +54,12 @@ function actualizarIndicadorConexion(online) {
 window.addEventListener('online', async () => {
   actualizarIndicadorConexion(true);
   mostrarToast('✅ Conexión restaurada — sincronizando datos...', 'success');
+
+  // Esperar a que Supabase esté inicializado
+  await new Promise(r => setTimeout(r, 1000));
+
   await sincronizarCola();
+
   // Actualizar caché con datos frescos de Supabase
   await cargarBase(true);
   await cargarRegistros(true);
@@ -68,8 +73,12 @@ window.addEventListener('offline', () => {
 
 // ---- Sincronizar cola de operaciones pendientes ----
 async function sincronizarCola() {
+  if (!navigator.onLine) return;
   const cola = cacheLoad(CACHE_KEYS.colaSync) || [];
   if (!cola.length) return;
+
+  // Esperar a que Supabase esté listo
+  await new Promise(r => setTimeout(r, 800));
 
   mostrarLoader(true);
   const errores = [];
@@ -77,16 +86,33 @@ async function sincronizarCola() {
   for (const op of cola) {
     try {
       if (op.tipo === 'insertar_registro') {
-        const { error } = await db.from('registros').insert(op.datos);
-        if (error) errores.push(op);
+        // Limpiar campos que no deben ir a Supabase
+        const datos = { ...op.datos };
+        delete datos.id;
+        delete datos._pendiente;
+        delete datos.created_at;
+        const { error } = await db.from('registros').insert(datos);
+        if (error) {
+          console.error('Error sync registro:', error);
+          errores.push(op);
+        }
       } else if (op.tipo === 'insertar_seguimiento') {
-        const { error } = await db.from('seguimientos').insert(op.datos);
-        if (error) errores.push(op);
+        const datos = { ...op.datos };
+        delete datos.id;
+        delete datos._pendiente;
+        delete datos.created_at;
+        const { error } = await db.from('seguimientos').insert(datos);
+        if (error) {
+          console.error('Error sync seguimiento:', error);
+          errores.push(op);
+        }
       } else if (op.tipo === 'eliminar_registro') {
         await db.from('seguimientos').delete().eq('registro_id', op.id);
-        await db.from('registros').delete().eq('id', op.id);
+        const { error } = await db.from('registros').delete().eq('id', op.id);
+        if (error) errores.push(op);
       }
     } catch(e) {
+      console.error('Error sync:', e);
       errores.push(op);
     }
   }
@@ -95,8 +121,8 @@ async function sincronizarCola() {
   mostrarLoader(false);
 
   const ok = cola.length - errores.length;
-  if (ok > 0) mostrarToast(`✅ ${ok} operación(es) sincronizada(s) con Supabase`, 'success');
-  if (errores.length > 0) mostrarToast(`⚠️ ${errores.length} operación(es) no pudieron sincronizarse`, 'error');
+  if (ok > 0) mostrarToast(`✅ ${ok} registro(s) sincronizado(s) con Supabase`, 'success');
+  if (errores.length > 0) mostrarToast(`⚠️ ${errores.length} registro(s) no pudieron sincronizarse`, 'error');
 }
 
 // ============================================================
@@ -352,7 +378,14 @@ function mostrarApp() {
   mostrarBienvenida(usuarioActual.nombre);
   cargarStats();
   cargarRegistros();
-  cargarBase(); // poblarFiltroGrados se llama dentro de cargarBase
+  cargarBase();
+  // Sincronizar pendientes al iniciar si hay internet
+  if (navigator.onLine) {
+    const cola = cacheLoad(CACHE_KEYS.colaSync) || [];
+    if (cola.length > 0) {
+      setTimeout(() => sincronizarCola(), 2000);
+    }
+  }
 }
 
 function mostrarBienvenida(nombre) {
